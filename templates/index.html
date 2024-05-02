@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+        /* Custom styles */
+        .navbar {
+            background: linear-gradient(to right, #4f93ce, #77b2d7);
+        }
+
+        .led-green {
+            background-color: #6fbf73;
+        }
+
+        .led-red {
+            background-color: #ff6666;
+        }
+
+        .widget {
+            background-color: #f5f7fb;
+            border-radius: 10px;
+        }
+
+        #widgetGraph {
+            height: 11rem;
+        }
+    </style>
+{% endblock %}
+{% block body %}
+ <nav class="navbar navbar-expand-lg navbar-dark py-4">
+        <div class="container">
+            <span class="navbar-brand">Mechanical</span>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex align-items-center mb-4">
+            <div class="rounded-circle me-2 led-green" style="width: 10px; height: 10px;"></div>
+            <span>Equipment Status: Running</span>
+        </div>
+
+        <div class="card widget">
+            <div class="card-body">
+                <h2 class="text-xl fw-bold text-uppercase">Equipment Name</h2>
+                <div id="widgetGraph" class="mt-4 border border-2 border-gray-200"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div id="chart-container" style="width: 600px; height: 400px;"></div>
+
+        </div>
+    </div>
+
+{% endblock %}
+{% block footer %}
+<script>
+async function fetchData() {
+    try {
+        const response = await fetch('/mechanical/fd/');
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        return null;
+    }
+}
+function generateChartOptions(data) {
+    let runningCount = 0;
+    let stoppedCount = 0;
+    let faultCount = 0;
+
+    // Calculate counts
+    data.forEach(item => {
+        if (item.Status === 1) {
+            runningCount++;
+        } else if (item.Status === 0 && item.Fault === 0) {
+            stoppedCount++;
+        } else if (item.Fault === 1) {
+            faultCount++;
+        }
+    });
+
+    // Generate options
+    const options = {
+        title: {
+            text: `Running: ${runningCount}/${data.length}`,
+            left: 'center',
+            top: 'middle',
+            textStyle: {
+                color: '#333',
+                fontSize: 16
+            }
+        },
+        series: [
+            {
+                type: 'pie',
+                data: [
+                    { value: runningCount, name: 'Running', itemStyle: { color: 'blue' } },
+                    { value: stoppedCount, name: 'Stopped', itemStyle: { color: 'gray' } },
+                    { value: faultCount, name: 'Fault', itemStyle: { color: 'red' } }
+                ],
+                radius: ['50%', '70%'],
+                label: {
+                    show: false
+                },
+                emphasis: {
+                    label: {
+                        show: false
+                    }
+                }
+            }
+        ]
+    };
+
+    // Add red shadow if fault count is greater than zero
+    if (faultCount > 0) {
+        options.series[0].itemStyle = {
+            shadowColor: 'red',
+            shadowBlur: 10
+        };
+        options.title.text = `Fault: ${faultCount}/${data.length}`;
+    }
+
+    return options;
+}
+
+// Fetch data and generate chart options
+fetchData()
+    .then(data => {
+        const chartOptions = generateChartOptions(data);
+        // Now you can use chartOptions to render the ECharts donut chart
+         const chartContainer = document.getElementById('chart-container');
+
+    // Initialize ECharts instance
+    const chart = echarts.init(chartContainer);
+
+    // Set chart options
+    chart.setOption(chartOptions);
+    })
+    .catch(error => console.error('Error:', error));
+</script>
+{% endblock %}
