@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block head %}
-<style>
+    <style>
         /* Custom styles */
         .navbar {
             background: linear-gradient(to right, #4f93ce, #77b2d7);
@@ -20,121 +20,182 @@
         }
 
         #widgetGraph {
-            height: 11rem;
+        {#height: 11rem;#}
         }
     </style>
 {% endblock %}
 {% block body %}
- <nav class="navbar navbar-expand-lg navbar-dark py-4">
+    <nav class="navbar navbar-expand-lg navbar-dark py-4">
         <div class="container">
             <span class="navbar-brand">Mechanical</span>
         </div>
     </nav>
 
     <div class="container mt-4">
-        <div class="d-flex align-items-center mb-4">
-            <div class="rounded-circle me-2 led-green" style="width: 10px; height: 10px;"></div>
-            <span>Equipment Status: Running</span>
-        </div>
-
         <div class="card widget">
             <div class="card-body">
-                <h2 class="text-xl fw-bold text-uppercase">Equipment Name</h2>
-                <div id="widgetGraph" class="mt-4 border border-2 border-gray-200"></div>
+                <div class="d-flex align-items-center mb-4">
+                    <h5 class="text-xl fw-bold text-uppercase" id="equipment-name">Equipment Name</h5>
+
+                    <div class="equipment-status-circle rounded-circle me-2" style="width: 10px; height: 10px;"></div>
+                </div>
+                <div id="chart-container-parent" class="mt-4 border border-2 border-gray-200" style="width: 300px; height: 350px">
+                    <h1 style="text-align: center;">PAC</h1>
+
+                    <div id="chart-container" style="width: 300px; height: 300px;">
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="row">
-            <div id="chart-container" style="width: 600px; height: 400px;"></div>
-
+    </div>
+    <div class="modal fade" id="equipmentModal" tabindex="-1" role="dialog" aria-labelledby="equipmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="equipmentModalLabel">Equipment Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody id="equipmentTableBody">
+                        <!-- Rows will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
+
 {% endblock %}
 {% block footer %}
-<script>
-async function fetchData() {
-    try {
-        const response = await fetch('/mechanical/fd/');
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        return null;
-    }
-}
-function generateChartOptions(data) {
-    let runningCount = 0;
-    let stoppedCount = 0;
-    let faultCount = 0;
-
-    // Calculate counts
-    data.forEach(item => {
-        if (item.Status === 1) {
-            runningCount++;
-        } else if (item.Status === 0 && item.Fault === 0) {
-            stoppedCount++;
-        } else if (item.Fault === 1) {
-            faultCount++;
+    <script>
+        async function fetchData() {
+            try {
+                const response = await fetch('/mechanical/PAC/');
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
         }
-    });
 
-    // Generate options
-    const options = {
-        title: {
-            text: `Running: ${runningCount}/${data.length}`,
-            left: 'center',
-            top: 'middle',
-            textStyle: {
-                color: '#333',
-                fontSize: 16
-            }
-        },
-        series: [
-            {
-                type: 'pie',
-                data: [
-                    { value: runningCount, name: 'Running', itemStyle: { color: 'blue' } },
-                    { value: stoppedCount, name: 'Stopped', itemStyle: { color: 'gray' } },
-                    { value: faultCount, name: 'Fault', itemStyle: { color: 'red' } }
-                ],
-                radius: ['50%', '70%'],
-                label: {
-                    show: false
-                },
-                emphasis: {
-                    label: {
-                        show: false
-                    }
+        // Function to populate the table inside the modal
+        function populateTable(data) {
+            const tableBody = document.getElementById('equipmentTableBody');
+            tableBody.innerHTML = '';
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                const nameCell = document.createElement('td');
+                nameCell.textContent = item.Equipment;
+                const statusCell = document.createElement('td');
+                statusCell.textContent = item.Status;
+                row.appendChild(nameCell);
+                row.appendChild(statusCell);
+                tableBody.appendChild(row);
+            });
+        }
+
+        function generateChartOptions(data) {
+            let runningCount = 0;
+            let stoppedCount = 0;
+            let faultCount = 0;
+
+            // Calculate counts
+            data.forEach(item => {
+                if (item.Status === 1) {
+                    runningCount++;
+                } else if (item.Status === 0 && item.Fault === 0) {
+                    stoppedCount++;
+                } else if (item.Fault === 1) {
+                    faultCount++;
                 }
+            });
+            let status = faultCount > 0 ? 'Fault' : 'Running';
+            // Generate options
+            let options = {
+                title: {
+                    text: `${runningCount}/${data.length}\n${status}`,
+                    left: 'center',
+                    top: 'middle',
+                    textStyle: {
+                        color: '#333',
+                        fontSize: 16
+                    }
+                },
+                series: [
+                    {
+                        type: 'pie',
+                        data: [
+                            {value: runningCount, name: 'Running', itemStyle: {color: 'blue'}},
+                            {value: stoppedCount, name: 'Stopped', itemStyle: {color: 'gray'}},
+                            {value: faultCount, name: 'Fault', itemStyle: {color: 'red'}}
+                        ],
+                        radius: ['70%', '80%'],
+                        label: {
+                            show: false
+                        },
+                        emphasis: {
+                            label: {
+                                show: false
+                            }
+                        }
+                    }
+                ]
+            };
+
+            // Add red shadow if fault count is greater than zero
+            // if (faultCount > 0) {
+            //     options.series[0].itemStyle = {
+            //         shadowColor: 'red',
+            //         shadowBlur: 10
+            //     };
+            //     options.title.text = `Fault: ${faultCount}/${data.length}`;
+            // }
+            if (faultCount > 0) {
+                document.getElementById('chart-container-parent').style.boxShadow = '0px 0px 10px red';
+                document.querySelector('.equipment-status-circle').classList.add('led-red');
+            }else{
+                document.querySelector('.equipment-status-circle').classList.add('led-green');
             }
-        ]
-    };
 
-    // Add red shadow if fault count is greater than zero
-    if (faultCount > 0) {
-        options.series[0].itemStyle = {
-            shadowColor: 'red',
-            shadowBlur: 10
-        };
-        options.title.text = `Fault: ${faultCount}/${data.length}`;
-    }
+            return options;
+        }
 
-    return options;
-}
+        // Fetch data and generate chart options
+        fetchData()
+            .then(data => {
+                console.log(data);
+                const chartOptions = generateChartOptions(data);
+                // Now you can use chartOptions to render the ECharts donut chart
+                const chartContainer = document.getElementById('chart-container');
+                document.getElementById('equipment-name').innerHTML = 'Mechanical'
+                // Initialize ECharts instance
+                const chart = echarts.init(chartContainer);
 
-// Fetch data and generate chart options
-fetchData()
-    .then(data => {
-        const chartOptions = generateChartOptions(data);
-        // Now you can use chartOptions to render the ECharts donut chart
-         const chartContainer = document.getElementById('chart-container');
+                // Set chart options
+                chart.setOption(chartOptions);
 
-    // Initialize ECharts instance
-    const chart = echarts.init(chartContainer);
+                document.getElementById('chart-container').addEventListener('click', function () {
+                    // Here you would make your AJAX call to fetch the equipment details
+                    // For this example, we use the sample data
+                    const equipmentData = data;
+                    populateTable(data);
 
-    // Set chart options
-    chart.setOption(chartOptions);
-    })
-    .catch(error => console.error('Error:', error));
-</script>
+                    // Show the modal
+                    $('#equipmentModal').modal('show');
+                });
+                $('[data-dismiss="modal"]').click(() => $('#equipmentModal').modal('hide'));
+            })
+            .catch(error => console.error('Error:', error));
+    </script>
 {% endblock %}
