@@ -63,6 +63,7 @@
                         <tr>
                             <th scope="col">Equipment</th>
                             <th scope="col">Status</th>
+                            <th scope="col">Fault</th>
                         </tr>
                         </thead>
                         <tbody id="equipmentTableBody">
@@ -99,8 +100,11 @@
                 nameCell.textContent = item.Equipment;
                 const statusCell = document.createElement('td');
                 statusCell.textContent = item.Status;
+                const faultCell = document.createElement('td');
+                faultCell.textContent = item.Fault;
                 row.appendChild(nameCell);
                 row.appendChild(statusCell);
+                row.appendChild(faultCell);
                 tableBody.appendChild(row);
             });
         }
