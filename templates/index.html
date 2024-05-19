@@ -1,11 +1,6 @@
 {% extends 'base.html' %}
 {% block head %}
     <style>
-        /* Custom styles */
-        .navbar {
-            background: linear-gradient(to right, #4f93ce, #77b2d7);
-        }
-
         .led-green {
             background-color: #6fbf73;
         }
@@ -18,20 +13,26 @@
             background-color: #f5f7fb;
             border-radius: 10px;
         }
-
+        tr.fault{
+            background-color: #ff6666;
+        }
         #widgetGraph {
         {#height: 11rem;#}
         }
     </style>
 {% endblock %}
 {% block body %}
-    <nav class="navbar navbar-expand-lg navbar-dark py-4">
-        <div class="container">
-            <span class="navbar-brand">Mechanical</span>
-        </div>
-    </nav>
+    {#    <nav class="navbar navbar-expand-lg navbar-dark py-4">#}
+    {#        <div class="container">#}
+    {#            <span class="navbar-brand">Mechanical</span>#}
+    {#        </div>#}
+    {#    </nav>#}
 
     <div class="container mt-4">
+        <div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" checked />
+  <label class="form-check-label" for="flexSwitchCheckChecked">Show Fault</label>
+</div>
         <div class="card widget">
             <div class="card-body">
                 <div class="d-flex align-items-center mb-4">
@@ -63,11 +64,13 @@
                         <tr>
                             <th scope="col">Equipment</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Fault</th>
+                            <th scope="col">Dirty Filter Alarm</th>
+                            <th scope="col">Fan Speed</th>
+                            <th scope="col">SA Temperature</th>
+                            <th scope="col">Last Updated</th>
                         </tr>
                         </thead>
                         <tbody id="equipmentTableBody">
-                        <!-- Rows will be populated by JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -79,9 +82,10 @@
 {% endblock %}
 {% block footer %}
     <script>
+    let api_data;
         async function fetchData() {
             try {
-                const response = await fetch('/mechanical/PAC/');
+                const response = await fetch(`/mechanical/PAC/${+document.getElementById('flexSwitchCheckChecked').checked}`);
                 const data = await response.json();
                 return data;
             } catch (error) {
@@ -99,16 +103,43 @@
                 const nameCell = document.createElement('td');
                 nameCell.textContent = item.Equipment;
                 const statusCell = document.createElement('td');
-                statusCell.textContent = item.Status;
+                statusCell.textContent = item.Status ? 'Running' : 'Stopped';
                 const faultCell = document.createElement('td');
-                faultCell.textContent = item.Fault;
+                faultCell.textContent = item.Fault ? 'Alarm': 'Normal';
+
+                if(item.Fault){
+                    row.classList.add('table-danger');
+                }else if(item.Status == 0){
+                    row.classList.add('not-running');
+                }
                 row.appendChild(nameCell);
                 row.appendChild(statusCell);
                 row.appendChild(faultCell);
+                const fanSpeed = document.createElement('td');
+                fanSpeed.textContent = item['Fan Speed'];
+                row.appendChild(fanSpeed);
+
+               const saTemperature = document.createElement('td');
+                saTemperature.textContent = item['SA Temperature'];
+                row.appendChild(saTemperature);
+
+               const lastUpdated = document.createElement('td');
+                lastUpdated.textContent = item['Last Updated'];
+                row.appendChild(lastUpdated);
+
+
+
                 tableBody.appendChild(row);
             });
         }
+function populateData() {
+                // Here you would make your AJAX call to fetch the equipment details
+                // For this example, we use the sample data
+                populateTable(api_data);
 
+                // Show the modal
+                $('#equipmentModal').modal('show');
+            };
         function generateChartOptions(data) {
             let runningCount = 0;
             let stoppedCount = 0;
@@ -133,16 +164,17 @@
                     top: 'middle',
                     textStyle: {
                         color: '#333',
-                        fontSize: 16
+                        fontSize: 20,
+                        fontFamily: 'sans-serif',
                     }
                 },
                 series: [
                     {
                         type: 'pie',
                         data: [
-                            {value: runningCount, name: 'Running', itemStyle: {color: 'blue'}},
-                            {value: stoppedCount, name: 'Stopped', itemStyle: {color: 'gray'}},
-                            {value: faultCount, name: 'Fault', itemStyle: {color: 'red'}}
+                            {value: runningCount, name: 'Running', itemStyle: {color: '#6B92C9'}},
+                            {value: stoppedCount, name: 'Stopped', itemStyle: {color: '#D1D1D1'}},
+                            {value: faultCount, name: 'Fault', itemStyle: {color: '#FF6E4C'}}
                         ],
                         radius: ['70%', '80%'],
                         label: {
@@ -167,8 +199,11 @@
             // }
             if (faultCount > 0) {
                 document.getElementById('chart-container-parent').style.boxShadow = '0px 0px 10px red';
+                document.querySelector('.equipment-status-circle').classList.remove('led-green');
                 document.querySelector('.equipment-status-circle').classList.add('led-red');
-            }else{
+            } else {
+                document.getElementById('chart-container-parent').style.boxShadow = '';
+                document.querySelector('.equipment-status-circle').classList.remove('led-red');
                 document.querySelector('.equipment-status-circle').classList.add('led-green');
             }
 
@@ -176,9 +211,10 @@
         }
 
         // Fetch data and generate chart options
+        const runner = setInterval(() => {
         fetchData()
             .then(data => {
-                console.log(data);
+                api_data = data;
                 const chartOptions = generateChartOptions(data);
                 // Now you can use chartOptions to render the ECharts donut chart
                 const chartContainer = document.getElementById('chart-container');
@@ -188,18 +224,17 @@
 
                 // Set chart options
                 chart.setOption(chartOptions);
-
-                document.getElementById('chart-container').addEventListener('click', function () {
-                    // Here you would make your AJAX call to fetch the equipment details
-                    // For this example, we use the sample data
-                    const equipmentData = data;
-                    populateTable(data);
-
-                    // Show the modal
-                    $('#equipmentModal').modal('show');
-                });
-                $('[data-dismiss="modal"]').click(() => $('#equipmentModal').modal('hide'));
+document.getElementById('chart-container').removeEventListener('click', populateData);
+document.getElementById('chart-container').addEventListener('click', populateData);
             })
             .catch(error => console.error('Error:', error));
+
+        }, 3000)
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+
+            $('[data-dismiss="modal"]').click(() => $('#equipmentModal').modal('hide'));
+        });
     </script>
 {% endblock %}

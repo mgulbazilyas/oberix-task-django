@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block head %}
+    <style>
+        body {
+            background: url(https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Copilot-for-M365-Hero-Background?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=1600&hei=582&qlt=100&fmt=png-alpha&fit=constrain) no-repeat;
+        }
+
+        .custom-card {
+            width: 326px;
+            height: 88px;
+            margin: 5px
+        }
+
+        .custom-card .card-body {
+            padding: 1rem;
+
+        }
+
+        .custom-card img {
+            height: 55px;
+            width: 55px;
+
+        }
+
+        .custom-card .card-text {
+            margin-left: 5px;
+            font-size: 1.25rem;
+            font-weight: 400;
+            line-height: 1.5;
+            color: #000000;
+            font-family: sans-serif;
+        }
+
+        .custom-card {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+        }
+
+        /* Define the final state of the card when it's visible */
+        .custom-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+{% endblock %}
+{% block body %}
+
+
+    <div class="container-fluid mt-4">
+        <h2 class="text-center">Welcome to Dashboard</h2>
+        <div class="d-flex justify-content-center flex-wrap">
+            {% for foo in "123456789" %}
+                <div class="card custom-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-4">
+                            <img src="https://via.placeholder.com/40" alt="Icon">
+                            <h5 class="card-text">Equipment Name {{ foo }}</h5>
+                        </div>
+                    </div>
+                </div>
+
+            {% endfor %}
+
+
+        </div>
+    </div>
+
+
+{% endblock %}
+{% block footer %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let cards = document.querySelectorAll('.custom-card');
+
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.classList.add('visible');
+                }, index * 100);
+            });
+        });
+    </script>
+{% endblock %}

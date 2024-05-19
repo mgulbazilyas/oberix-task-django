@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block head %}
+    <style>
+        body {
+            background: url(https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/Copilot-for-M365-Hero-Background?resMode=sharp2&op_usm=1.5,0.65,15,0&wid=1600&hei=582&qlt=100&fmt=png-alpha&fit=constrain) no-repeat;
+        }
+
+        .divider.hr {
+            border-top: 4px solid gray;
+        }
+
+        .weather-card {
+            width: 350px
+        }
+
+        .weather-image {
+            width: 50%;
+            height: auto;
+        }
+
+        .stats-image {
+            position: absolute;
+            width: 20px;
+            right: 15px;
+            top: 15px;
+
+        }
+        .stats-image:hover{
+            cursor: pointer;
+        }
+    </style>
+{% endblock %}
+{% block body %}
+
+
+    <div class="container mt-4">
+        <div class="row form-group">
+            <label>
+                <input class="form-check-input" type="radio" name="weather" value="1" checked> Sunny
+            </label>
+            <label>
+                <input class="form-check-input" type="radio" name="weather" value="2"> Cloudy
+            </label>
+            <label>
+                <input class="form-check-input" type="radio" name="weather" value="3"> Rain
+            </label>
+        </div>
+        <div class="d-flex justify-content-center flex-wrap">
+            <div class="col-md-4">
+                <div class="card weather-card">
+                    <div class="card-body text-center">
+                        <h4 class="weather-header">Weather</h4>
+                        <hr class="hr divider ms-4 me-4"/>
+                        <h4 class="weather-subheader"></h4>
+                        <img src="https://via.placeholder.com/100" alt="Sunny Icon" class="weather-image">
+                        <h4 class="temperature"></h4>
+                    </div>
+                    <img src="/static/icons/stats-chart.svg" alt="Stats" class="stats-image">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %}
+{% block footer %}
+    <script>
+        function fetchWeather(value) {
+            fetch(`/api/weather/${value}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.querySelector('.weather-card .weather-subheader').innerText = data.Weather;
+                    document.querySelector('.weather-card .temperature').innerText = data.temperature + ' °C';
+                    document.querySelector('.weather-card .weather-image').src = data.image;
+                    document.querySelector('.weather-card .weather-image').alt = data.Weather;
+
+
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function onRadioChange(event) {
+            const value = parseInt(event.target.value);
+            fetchWeather(value);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const radios = document.getElementsByName('weather');
+            radios.forEach(radio => radio.addEventListener('change', onRadioChange));
+        });
+        document.addEventListener("DOMContentLoaded", function () {
+            fetchWeather(1);
+        })
+    </script>
+{% endblock %}
